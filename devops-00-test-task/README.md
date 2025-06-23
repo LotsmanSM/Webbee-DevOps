@@ -387,7 +387,9 @@ OS Support Remaining: 9y 11month 1w
 192.168.88.182 srv182-pg
 ```
 Аналогично, проделываю на второй виртуалке.
-Также для удобства редактирую `/etc/hosts` на ноутбуте
+
+Также для удобства редактирую `/etc/hosts` на ноутбуке.
+
 Проверяю доступность `srv181-nginx` c `srv182-pg`
 
 ```bash
@@ -444,21 +446,41 @@ Docker Compose version v2.35.1
 2. Nginx должен быть доступен на стандартных портах 80, 443 и на 5432 (см часть 3 пункт 2)
 
 
+Для сервера `srv181-nginx` был написан `docker-compose.yml`. Посмотреть его можно по ссылке [srv181-nginx](docker/srv181-nginx/)
+Написать Docker Compose файл для развертывания Nginx
+
+```
+version: '3'  
+services:  
+    nginx:  
+        image: nginx:latest  
+        ports:
+            - "80:80"   
+        volumes:
+            - ./html:/usr/share/nginx/html   
+        restart: always  # Автозапуск контейнера при остановке
+```
+
+Добавил `index.html` для отображения своей версии стартовой страницы nginx.
+
+Запускаю `docker compose up -d`
+
+```bash
+╰─➤docker compose up -d
+WARN[0000] /home/admn/srv181-nginx/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Running 2/2
+ ✔ Network srv181-nginx_default    Created                                              0.1s 
+ ✔ Container srv181-nginx-nginx-1  Started                                              0.3s
 
 
+╰─➤docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS                                 NAMES
+29eee1ae93e5   nginx:latest   "/docker-entrypoint.…"   12 minutes ago   Up 12 minutes   0.0.0.0:80->80/tcp, [::]:80->80/tcp   srv181-nginx-nginx-1
+```
 
+Запистив браузер и перейдя на `http://srv181-nginx` попадаем на стартовую страницу nginx.
 
-
-
-
-
-
-
-
-
-
-
-
+![img04.png](img/img04.png)
 
 #### На ВМ2:
 1. Написать Docker Compose файл для развертывания:
@@ -475,10 +497,16 @@ WARN[0000] /home/admn/srv182-pg/docker-compose.yml: the attribute `version` is o
  ✔ Network srv182-pg_default       Created                                                                                   0.1s 
  ✔ Container srv182-pg-postgres-1  Healthy                                                                                  10.8s 
  ✔ Container srv182-pg-pgadmin-1   Started
+
+╰─➤docker ps
+CONTAINER ID   IMAGE            COMMAND                  CREATED          STATUS                    PORTS                                              NAMES
+b4c47765337c   dpage/pgadmin4   "/entrypoint_custom.…"   20 seconds ago   Up 9 seconds              443/tcp, 0.0.0.0:5050->80/tcp, [::]:5050->80/tcp   srv182-pg-pgadmin-1
+9569240be3f2   postgres         "docker-entrypoint.s…"   20 seconds ago   Up 19 seconds (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp        srv182-pg-postgres-1
 ```
+
 Запистив браузер и перейдя на `http://srv182-pg:5050` попадаем на pgAdmin, к котором добавлен сервер PostgreSQL
 
-![img07.png](img/img07.png)
+![img05.png](img/img05.png)
 
 ---
 
