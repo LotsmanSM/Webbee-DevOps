@@ -1,0 +1,9 @@
+services:
+    nginx:
+        image: nginx:latest
+        ports:
+            - "80:80"
+        volumes:
+            - ./html:/usr/share/nginx/html
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+        restart: always  # Автозапуск контейнера при остановке

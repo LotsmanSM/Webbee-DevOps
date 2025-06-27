@@ -342,7 +342,7 @@ Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 Подсоединюсь к одной из виртуальных машин по `ssh`, поменяю ей имя, и изменю файл `/etc/hosts` для настройки сетевой видимости по доменному имени.
 
 ```bash
-╰─➤ssh admn@192.168.88.181[OpenTofu](opentofu/)
+╰─➤ssh admn@192.168.88.181
 admn@192.168.88.181's password: 
 Web console: https://lvm:9090/ or https://192.168.88.181:9090/
 
@@ -450,7 +450,6 @@ Docker Compose version v2.35.1
 Написать Docker Compose файл для развертывания Nginx
 
 ```
-version: '3'  
 services:  
     nginx:  
         image: nginx:latest  
@@ -478,7 +477,7 @@ CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS  
 29eee1ae93e5   nginx:latest   "/docker-entrypoint.…"   12 minutes ago   Up 12 minutes   0.0.0.0:80->80/tcp, [::]:80->80/tcp   srv181-nginx-nginx-1
 ```
 
-Запистив браузер и перейдя на `http://srv181-nginx` попадаем на стартовую страницу nginx.
+Запустив браузер и перейдя на `http://srv181-nginx` попадаем на стартовую страницу nginx.
 
 ![img04.png](img/img04.png)
 
@@ -488,7 +487,7 @@ CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS  
   - pgAdmin
 2. Настроить связь между pgAdmin и PostgreSQL
 
-Для сервера srv182-pg был написан `docker-compose.yml`. Посмотреть его можно по ссылке [srv182-pg](docker/srv182-pg/)
+Для сервера srv182-pg был написан `docker-compose.yml`. Посмотреть его можно по ссылке [srv181-nginx-01](docker/srv181-nginx-01/)
 
 ```bash
 ╰─➤docker compose up -d
@@ -515,6 +514,61 @@ b4c47765337c   dpage/pgadmin4   "/entrypoint_custom.…"   20 seconds ago   Up 9
 Настроить Nginx на ВМ1 для:
 1. Проксирования веб-интерфейса pgAdmin (например, http://ВМ1/pgadmin)
 2. Проксирования прямых запросов к PostgreSQL (например, psql ВМ1 -U postgres)
+
+Конфигурационные файлы можно посмлтреть по ссылке [srv181-nginx-02](docker/srv181-nginx-02/)
+Согласно документации [pgadmin4 главы HTTPS via Nginx](https://www.pgadmin.org/docs/pgadmin4/latest/container_deployment.html) нужно добавить следующие строки в конфигурационный файл [nginx.conf](/devops-00-test-task/docker/srv181-nginx-02/nginx/nginx.conf) в раздел http {...}:
+
+```
+server {
+    listen 80;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443;
+    server_name _;
+
+    ssl_certificate /etc/nginx/server.cert;
+    ssl_certificate_key /etc/nginx/server.key;
+
+    ssl on;
+    ssl_session_cache builtin:1000 shared:SSL:10m;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
+    ssl_prefer_server_ciphers on;
+
+    location /pgadmin4/ {
+        proxy_set_header X-Script-Name /pgadmin4;
+        proxy_set_header X-Scheme $scheme;
+        proxy_set_header Host $host;
+        proxy_pass http://srv182-pg/;
+        proxy_redirect off;
+    }
+}
+```
+Также для работы по защищеному протоколу 443 нужно сгенерировать сертификаты.
+
+Для проксирования запросов в базу postgresql, нужно добавить такие строки:
+
+```
+stream {
+    upstream postgres {
+        server my_postgres:5432;
+    }
+    server {
+        listen 5432 so_keepalive=on;
+        proxy_pass postgres;
+    }
+}
+```
+
+
+**<ins>С данным пунктом задания я просидел 3 дня, но так проксирование у меня не заработало. В чем причина, я так и не понял за это время.
+Поэтому прошу дать обратную связь по проксированию в Nginx (Или скинуть примеры правильного кон)фигурационного файла.</ins>**
+
+
+
+---
 
 ### Часть 4: Документация
 
